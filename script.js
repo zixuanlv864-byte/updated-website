@@ -1,3 +1,56 @@
+// Install the branded cursor before page-specific enhancements. This keeps the
+// pointer available even when a later optional feature cannot initialize.
+(()=>{
+  const finePointer=matchMedia('(hover:hover) and (pointer:fine)');
+  const reducedMotion=matchMedia('(prefers-reduced-motion:reduce)');
+  if(!finePointer.matches||reducedMotion.matches)return;
+
+  const cursor=document.createElement('span');
+  cursor.className='logo-cursor';
+  cursor.setAttribute('aria-hidden','true');
+  document.body.appendChild(cursor);
+  document.documentElement.classList.add('logo-cursor-enabled');
+
+  const interactiveSelector='a,button,summary,input,select,textarea,video,[role="button"],[tabindex]:not([tabindex="-1"])';
+  let lastParticleAt=0;
+  let lastX=0;
+  let lastY=0;
+
+  const addParticle=(x,y,interactive)=>{
+    const particle=document.createElement('i');
+    const angle=Math.random()*Math.PI*2;
+    const distance=7+Math.random()*9;
+    particle.className=`logo-cursor-particle${interactive?' is-interactive':''}`;
+    particle.style.setProperty('--particle-x',`${x}px`);
+    particle.style.setProperty('--particle-y',`${y}px`);
+    particle.style.setProperty('--drift-x',`${Math.cos(angle)*distance}px`);
+    particle.style.setProperty('--drift-y',`${Math.sin(angle)*distance}px`);
+    document.body.appendChild(particle);
+    particle.addEventListener('animationend',()=>particle.remove(),{once:true});
+  };
+
+  document.addEventListener('pointermove',event=>{
+    const x=event.clientX;
+    const y=event.clientY;
+    const interactive=Boolean(event.target.closest?.(interactiveSelector));
+    cursor.style.setProperty('--cursor-x',`${x}px`);
+    cursor.style.setProperty('--cursor-y',`${y}px`);
+    cursor.classList.add('is-visible');
+    cursor.classList.toggle('is-interactive',interactive);
+    const moved=Math.hypot(x-lastX,y-lastY);
+    if(moved>5&&event.timeStamp-lastParticleAt>34){
+      addParticle(x,y,interactive);
+      lastParticleAt=event.timeStamp;
+      lastX=x;
+      lastY=y;
+    }
+  },{passive:true});
+  document.addEventListener('pointerdown',()=>cursor.classList.add('is-pressed'),{passive:true});
+  document.addEventListener('pointerup',()=>cursor.classList.remove('is-pressed'),{passive:true});
+  document.addEventListener('pointerleave',()=>cursor.classList.remove('is-visible'),{passive:true});
+  window.addEventListener('blur',()=>cursor.classList.remove('is-visible'));
+})();
+
 const nav=document.querySelector('.nav'); addEventListener('scroll',()=>nav.classList.toggle('scrolled',scrollY>30));
 // Keep the mobile navigation consistent across every page, not only the home page.
 if(nav && !nav.querySelector('.menu-btn')){
@@ -437,57 +490,3 @@ if(dataSection){
     dataObserver.observe(dataSection);
   }
 }
-
-// Replace the desktop pointer with the Riemann mark while keeping the native
-// hit target and click behavior unchanged. Sparse particles make movement
-// legible without obscuring content or creating a continuous trail.
-(()=>{
-  const finePointer=matchMedia('(hover:hover) and (pointer:fine)');
-  const reducedMotion=matchMedia('(prefers-reduced-motion:reduce)');
-  if(!finePointer.matches||reducedMotion.matches)return;
-
-  const cursor=document.createElement('span');
-  cursor.className='logo-cursor';
-  cursor.setAttribute('aria-hidden','true');
-  document.body.appendChild(cursor);
-  document.documentElement.classList.add('logo-cursor-enabled');
-
-  const interactiveSelector='a,button,summary,input,select,textarea,video,[role="button"],[tabindex]:not([tabindex="-1"])';
-  let lastParticleAt=0;
-  let lastX=0;
-  let lastY=0;
-
-  const addParticle=(x,y,interactive)=>{
-    const particle=document.createElement('i');
-    const angle=Math.random()*Math.PI*2;
-    const distance=7+Math.random()*9;
-    particle.className=`logo-cursor-particle${interactive?' is-interactive':''}`;
-    particle.style.setProperty('--particle-x',`${x}px`);
-    particle.style.setProperty('--particle-y',`${y}px`);
-    particle.style.setProperty('--drift-x',`${Math.cos(angle)*distance}px`);
-    particle.style.setProperty('--drift-y',`${Math.sin(angle)*distance}px`);
-    document.body.appendChild(particle);
-    particle.addEventListener('animationend',()=>particle.remove(),{once:true});
-  };
-
-  document.addEventListener('pointermove',event=>{
-    const x=event.clientX;
-    const y=event.clientY;
-    const interactive=Boolean(event.target.closest?.(interactiveSelector));
-    cursor.style.setProperty('--cursor-x',`${x}px`);
-    cursor.style.setProperty('--cursor-y',`${y}px`);
-    cursor.classList.add('is-visible');
-    cursor.classList.toggle('is-interactive',interactive);
-    const moved=Math.hypot(x-lastX,y-lastY);
-    if(moved>5&&event.timeStamp-lastParticleAt>34){
-      addParticle(x,y,interactive);
-      lastParticleAt=event.timeStamp;
-      lastX=x;
-      lastY=y;
-    }
-  },{passive:true});
-  document.addEventListener('pointerdown',()=>cursor.classList.add('is-pressed'),{passive:true});
-  document.addEventListener('pointerup',()=>cursor.classList.remove('is-pressed'),{passive:true});
-  document.addEventListener('pointerleave',()=>cursor.classList.remove('is-visible'),{passive:true});
-  window.addEventListener('blur',()=>cursor.classList.remove('is-visible'));
-})();
